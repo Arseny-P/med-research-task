@@ -26,27 +26,32 @@ def analyze_tumor_size(df):
     diff_percent = (diff / non_smokers.mean()) * 100
     
     print(f"\nРазница средних: {diff:.2f} мм ({diff_percent:+.1f}%)")
+
+    print("\nРЕЗУЛЬТАТЫ СРАВНЕНИЯ ГРУПП:")
     
-    _, p_norm1 = stats.shapiro(smokers.sample(min(5000, len(smokers))))
-    _, p_norm2 = stats.shapiro(non_smokers.sample(min(5000, len(non_smokers))))
-    
-    is_normal = p_norm1 > 0.05 and p_norm2 > 0.05
-    
-    if is_normal:
-        t_stat, p_value = stats.ttest_ind(smokers, non_smokers, equal_var=False)
-        test_name = "T-тест Стьюдента (непарный)"
-    else:
-        t_stat, p_value = stats.mannwhitneyu(smokers, non_smokers)
-        test_name = "U-тест Манна-Уитни"
-    
+
+    t_stat, p_value = stats.ttest_ind(smokers, non_smokers, equal_var=False)
+    test_name = "T-тест Стьюдента (непарный)"
+
     test_results = pd.DataFrame({
         'Тест': [test_name],
         'Статистика': [f"{t_stat:.4f}"],
         'p-value': [f"{p_value:.6f}"],
         'Значимость': ['Значимо (p < 0.05)' if p_value < 0.05 else 'Не значимо (p ≥ 0.05)']
     })
+
+    display(test_results.style.set_caption("Статистический тест"))
+
+    t_stat, p_value = stats.mannwhitneyu(smokers, non_smokers)
+    test_name = "U-тест Манна-Уитни"
     
-    print("\nРЕЗУЛЬТАТЫ СРАВНЕНИЯ ГРУПП:")
+    test_results = pd.DataFrame({
+        'Тест': [test_name],
+        'Статистика': [f"{t_stat:.4f}"],
+        'p-value': [f"{p_value:.6f}"],
+        'Значимость': ['Значимо (p < 0.05)' if p_value < 0.01 else 'Не значимо (p ≥ 0.05)']
+    })
+
     display(test_results.style.set_caption("Статистический тест"))
     
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))

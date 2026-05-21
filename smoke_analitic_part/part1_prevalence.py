@@ -36,7 +36,7 @@ def analyze_prevalence(df):
     display(percent_table.style.format("{:.1f}%")
             .set_caption("Доля пациентов в процентах"))
     
-    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     # Столбчатая диаграмма
     table.plot(kind='bar', ax=axes[0], color=['#FF9999', '#66B2FF'], edgecolor='black')
