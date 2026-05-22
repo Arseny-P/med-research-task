@@ -1,7 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
-from IPython.display import display
 
 def analyze_tumor_size(df):
     smokers = df[(df['Курение'] == 'да') & (df['Сред. размер, мм'].notna())]['Сред. размер, мм']
@@ -18,42 +17,49 @@ def analyze_tumor_size(df):
     }
     
     stats_df = pd.DataFrame(stats_dict)
-    
     print("\nОПИСАТЕЛЬНАЯ СТАТИСТИКА:")
-    display(stats_df.style.set_caption("Характеристики размера очага"))
+    print("-" * 50)
+    print(stats_df.to_string(index=False))
+    print("-" * 50)
     
     diff = smokers.mean() - non_smokers.mean()
     diff_percent = (diff / non_smokers.mean()) * 100
-    
-    print(f"\nРазница средних: {diff:.2f} мм ({diff_percent:+.1f}%)")
+    print(f"\n Разница средних: {diff:.2f} мм ({diff_percent:+.1f}%)")
 
+    sample_n = min(5000, len(smokers))
+    _, p_norm1 = stats.shapiro(smokers.sample(sample_n, random_state=42))
+    _, p_norm2 = stats.shapiro(non_smokers.sample(sample_n, random_state=42))
+    
+    print(f"\nПроверка нормальности распределения:")
+    print(f"   Курильщики: p = {p_norm1:.4f} {'Нормальное' if p_norm1 > 0.05 else 'Не нормальное'}")
+    print(f"   Некурящие:  p = {p_norm2:.4f} {'Нормальное' if p_norm2 > 0.05 else 'Не нормальное'}")
+    
+    is_normal = p_norm1 > 0.05 and p_norm2 > 0.05
+    
+    if is_normal:
+        t_stat, p_value = stats.ttest_ind(smokers, non_smokers, equal_var=False)
+        test_name = "T-тест Стьюдента (непарный, Welch)"
+    else:
+        t_stat, p_value = stats.mannwhitneyu(smokers, non_smokers, alternative='two-sided')
+        test_name = "U-тест Манна-Уитни"
+    
+    print(f"\nВыбран статистический тест: {test_name}")
+    print(f"   Статистика: {t_stat:.4f}")
+    print(f"   p-value:    {p_value:.6f}")
+
+    test_results = pd.DataFrame({
+        'Тест': [test_name],
+        'Статистика': [f"{t_stat:.4f}"],
+        'p-value': [f"{p_value:.6f}"],
+        'Значимость': [' Значимо (p < 0.05)' if p_value < 0.05 else 'Не значимо (p ≥ 0.05)']
+    })
+    
     print("\nРЕЗУЛЬТАТЫ СРАВНЕНИЯ ГРУПП:")
+    print("-" * 50)
+    print(test_results.to_string(index=False))
+    print("-" * 50)
     
 
-    t_stat, p_value = stats.ttest_ind(smokers, non_smokers, equal_var=False)
-    test_name = "T-тест Стьюдента (непарный)"
-
-    test_results = pd.DataFrame({
-        'Тест': [test_name],
-        'Статистика': [f"{t_stat:.4f}"],
-        'p-value': [f"{p_value:.6f}"],
-        'Значимость': ['Значимо (p < 0.05)' if p_value < 0.05 else 'Не значимо (p ≥ 0.05)']
-    })
-
-    display(test_results.style.set_caption("Статистический тест"))
-
-    t_stat, p_value = stats.mannwhitneyu(smokers, non_smokers)
-    test_name = "U-тест Манна-Уитни"
-    
-    test_results = pd.DataFrame({
-        'Тест': [test_name],
-        'Статистика': [f"{t_stat:.4f}"],
-        'p-value': [f"{p_value:.6f}"],
-        'Значимость': ['Значимо (p < 0.05)' if p_value < 0.01 else 'Не значимо (p ≥ 0.05)']
-    })
-
-    display(test_results.style.set_caption("Статистический тест"))
-    
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     # Boxplot
@@ -87,5 +93,4 @@ def analyze_tumor_size(df):
     
     plt.suptitle("ЧАСТЬ 2: Сравнение размера очага", fontsize=14, fontweight='bold')
     plt.tight_layout()
-    # plt.savefig('part2.png')
     plt.show()
